@@ -8,6 +8,7 @@
 import base64
 import binascii
 import csv
+import getpass
 import sys
 import tkinter as tk
 from tkinter import scrolledtext
@@ -26,6 +27,7 @@ BASE64 = "base64"
 MAX_PATH_ARGS = 1
 
 vfs_data = {}
+cur_path = ""
 output_box = None
 input_box = None
 root = None
@@ -124,24 +126,117 @@ def save_vfs(file_path):
     return True
 
 
+# ---------- Пути внутри VFS ----------
+def resolve_path(name):
+    """Превращает путь пользователя в полный путь внутри VFS.
+
+    Поддерживаются абсолютные пути (/home), относительные пути,
+    а также "." и "..". Корень обозначается пустой строкой.
+    """
+    if name.startswith("/"):
+        parts = []
+    else:
+        parts = cur_path.split("/") if cur_path else []
+    for part in name.split("/"):
+        if part == "..":
+            if parts:
+                parts.pop()
+        elif part not in ("", "."):
+            parts.append(part)
+    return "/".join(parts)
+
+
+def is_dir(path):
+    """Проверяет, что путь указывает на папку (корень — тоже папка)."""
+    return path == "" or (path in vfs_data
+                          and vfs_data[path]["kind"] == "dir")
+
+
+def is_file(path):
+    """Проверяет, что путь указывает на файл."""
+    return path in vfs_data and vfs_data[path]["kind"] == "file"
+
+
+def list_children(path):
+    """Возвращает отсортированные имена элементов, лежащих прямо в path."""
+    prefix = path + "/" if path else ""
+    result = []
+    for entry_path in vfs_data:
+        rest = entry_path[len(prefix):]
+        if entry_path.startswith(prefix) and rest and "/" not in rest:
+            result.append(rest)
+    return sorted(result)
+
+
+def shown_path(path):
+    """Возвращает путь в виде, привычном для UNIX (/home/user)."""
+    return "/" + path
+
+
 # ---------- Команды ----------
-def cmd_stub(name, args):
-    """Заглушка: выводит имя команды и её аргументы."""
-    return name + ": вызвана с аргументами: " + str(args)
-
-
 def cmd_ls(args):
-    """Заглушка команды ls (логика появится на Этапе 4)."""
+    """Выводит имена элементов текущей или указанной папки."""
     if len(args) > MAX_PATH_ARGS:
         return "Ошибка: ls: слишком много аргументов"
-    return cmd_stub("ls", args)
+    target = resolve_path(args[0]) if args else cur_path
+    if not is_dir(target):
+        return "Ошибка: ls: нет такой папки: " + args[0]
+    names = list_children(target)
+    return " ".join(names) if names else "(папка пуста)"
 
 
 def cmd_cd(args):
-    """Заглушка команды cd (логика появится на Этапе 4)."""
+    """Меняет текущую папку. Без аргументов переходит в корень."""
+    global cur_path
     if len(args) > MAX_PATH_ARGS:
         return "Ошибка: cd: слишком много аргументов"
-    return cmd_stub("cd", args)
+    target = resolve_path(args[0]) if args else ""
+    if not is_dir(target):
+        return "Ошибка: cd: нет такой папки: " + args[0]
+    cur_path = target
+    return "cd: текущая папка " + shown_path(cur_path)
+
+
+def cmd_who(args):
+    """Выводит имя пользователя реальной ОС."""
+    if args:
+        return "Ошибка: who: команда не принимает аргументов"
+    try:
+        user = getpass.getuser()
+    except (OSError, KeyError, ImportError):
+        user = "user"
+    return user
+
+
+def read_file_arg(name, args):
+    """Проверяет аргумент команды-читателя файла.
+
+    Возвращает (текст файла, None) или (None, текст ошибки).
+    """
+    if len(args) != MAX_PATH_ARGS:
+        return None, "Ошибка: " + name + ": укажите один файл"
+    target = resolve_path(args[0])
+    if not is_file(target):
+        return None, "Ошибка: " + name + ": нет такого файла: " + args[0]
+    return vfs_data[target]["content"], None
+
+
+def cmd_wc(args):
+    """Считает строки, слова и символы в файле."""
+    text, error = read_file_arg("wc", args)
+    if error:
+        return error
+    lines = len(text.split("\n")) if text else 0
+    return "{} {} {} {}".format(lines, len(text.split()), len(text),
+                                args[0])
+
+
+def cmd_tac(args):
+    """Выводит строки файла в обратном порядке."""
+    text, error = read_file_arg("tac", args)
+    if error:
+        return error
+    return "\n".join(reversed(text.split("\n")))
 
 
 def cmd_vfs_save(args):
@@ -163,6 +258,9 @@ def cmd_exit(args):
 COMMANDS = {
     "ls": cmd_ls,
     "cd": cmd_cd,
+    "who": cmd_who,
+    "wc": cmd_wc,
+    "tac": cmd_tac,
     "vfs-save": cmd_vfs_save,
     "exit": cmd_exit,
 }

@@ -1,0 +1,32 @@
+# Стартовый скрипт Этапа 4: ls, cd, who, wc, tac
+
+# ls и cd
+ls
+ls home/user
+cd home/user/docs
+ls
+cd ..
+ls
+cd ../..
+cd /home/user/docs
+ls /bin
+# who
+who
+# wc и tac
+wc note.txt
+tac note.txt
+cd
+ls
+
+# ошибки
+ls nofolder
+ls a b
+cd nofolder
+cd home/user/docs/note.txt
+who extra
+wc
+wc nofile.txt
+wc home
+tac
+tac a b
+foobar

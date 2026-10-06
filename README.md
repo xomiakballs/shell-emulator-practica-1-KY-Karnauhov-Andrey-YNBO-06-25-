@@ -7,15 +7,19 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
 указано имя VFS (`vfs-9variant`). Введённая строка разбивается
 по пробелам на команду и аргументы.
 
-Статус: **Этап 3 — VFS**. VFS загружается из CSV в память; `ls` и `cd` пока заглушки.
+Статус: **Этап 4 — Основные команды** (`ls`, `cd`, `who`, `wc`, `tac`).
 
 ## Функции и настройки
 
 - Неизвестная команда или неверные аргументы не роняют программу:
   в окне выводится сообщение, начинающееся со слова «Ошибка».
 - `exit` — закрывает эмулятор (с аргументами — ошибка).
-- `ls [путь]`, `cd [путь]` — заглушки: печатают своё имя и аргументы.
-  Больше одного аргумента — ошибка.
+- `ls [путь]` — имена элементов текущей или указанной папки.
+- `cd [путь]` — смена текущей папки; без аргумента — переход в корень.
+  Поддерживаются абсолютные (`/home/user`) и относительные пути, `.` и `..`.
+- `who` — имя пользователя реальной ОС.
+- `wc <файл>` — число строк, слов и символов в файле.
+- `tac <файл>` — строки файла в обратном порядке.
 - Параметры командной строки:
     - `--vfs <путь>` — путь к CSV-файлу с VFS;
     - `--script <путь>` — путь к стартовому скрипту.
@@ -57,7 +61,7 @@ file,bin/hello.bin,base64,0J/RgNC4...
 
 ```
 run.bat
-python src/main.py --vfs tests/vfsdeep.csv --script tests/startall3.txt
+python src/main.py --vfs tests/vfsdeep.csv --script tests/startall4.txt
 ```
 
 `run.bat` передаёт параметры дальше, например
@@ -84,6 +88,7 @@ python src/main.py --vfs tests/vfsdeep.csv --script tests/startall3.txt
 | `tests/test11_vfs_missing.bat` | файл VFS не найден (ошибка) |
 | `tests/test12_vfs_bad.bat` | неверные строки в VFS (`vfsbad.csv`, ошибки) |
 | `tests/teststage3.bat` | все команды Этапа 3 + VFS + ошибки (`startall3.txt`) |
+| `tests/teststage4.bat` | `ls`, `cd`, `who`, `wc`, `tac` + ошибки (`startall4.txt`) |
 
 Файлы, которые создаёт `vfs-save` при тестах, попадают в `tests/out/`
 (папка в `.gitignore`).
@@ -91,17 +96,17 @@ python src/main.py --vfs tests/vfsdeep.csv --script tests/startall3.txt
 ## Примеры использования
 
 ```
-> python src/main.py --vfs tests/vfsdeep.csv --script tests/startall3.txt
-VFS загружена, записей: 7
-vfs-9variant$ vfs-save tests/out/saved3.csv
-vfs-save: сохранено в tests/out/saved3.csv
-vfs-9variant$ vfs-save
-Ошибка: vfs-save: укажите один путь
-Ошибка в строке 10 стартового скрипта
-
-> python src/main.py --vfs tests/vfsbad.csv
-Ошибка: неверный формат VFS в строке 3
-Ошибка: неизвестный тип записи в строке 4
-Ошибка: неверные данные base64 в строке 5
-VFS загружена, записей: 1
+> python src/main.py --vfs tests/vfsdeep.csv
+vfs-9variant$ ls
+bin home
+vfs-9variant$ cd home/user/docs
+cd: текущая папка /home/user/docs
+vfs-9variant$ wc note.txt
+3 6 41 note.txt
+vfs-9variant$ tac note.txt
+третья строка
+вторая строка
+первая строка
+vfs-9variant$ cd nofolder
+Ошибка: cd: нет такой папки: nofolder
 ```
