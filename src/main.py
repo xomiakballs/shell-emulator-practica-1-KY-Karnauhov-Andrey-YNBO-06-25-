@@ -1,10 +1,11 @@
 """Эмулятор языка оболочки ОС (Вариант №9) с графическим интерфейсом.
 
 Окно на Tkinter имитирует командную строку UNIX-подобной ОС.
-Этап 1: минимальный прототип REPL. Команды ls и cd пока являются
-заглушками, которые выводят своё имя и аргументы.
+Этап 2: параметры командной строки (--vfs, --script) и стартовый
+скрипт. Команды ls и cd пока являются заглушками.
 """
 
+import sys
 import tkinter as tk
 from tkinter import scrolledtext
 
@@ -21,6 +22,29 @@ input_box = None
 root = None
 
 
+# ---------- Параметры командной строки ----------
+def parse_params(params):
+    """Разбирает параметры --vfs и --script.
+
+    Возвращает кортеж (путь к VFS, путь к скрипту, список ошибок).
+    """
+    found = {"--vfs": None, "--script": None}
+    problems = []
+    i = 0
+    while i < len(params):
+        name = params[i]
+        if name not in found:
+            problems.append("Ошибка: неизвестный параметр " + name)
+            i += 1
+        elif i + 1 < len(params):
+            found[name] = params[i + 1]
+            i += 2
+        else:
+            problems.append("Ошибка: после " + name + " не указан путь")
+            i += 1
+    return found["--vfs"], found["--script"], problems
+
+
 # ---------- Команды ----------
 def cmd_stub(name, args):
     """Заглушка: выводит имя команды и её аргументы."""
@@ -28,14 +52,14 @@ def cmd_stub(name, args):
 
 
 def cmd_ls(args):
-    """Заглушка команды ls."""
+    """Заглушка команды ls (логика появится на Этапе 4)."""
     if len(args) > MAX_PATH_ARGS:
         return "Ошибка: ls: слишком много аргументов"
     return cmd_stub("ls", args)
 
 
 def cmd_cd(args):
-    """Заглушка команды cd."""
+    """Заглушка команды cd (логика появится на Этапе 4)."""
     if len(args) > MAX_PATH_ARGS:
         return "Ошибка: cd: слишком много аргументов"
     return cmd_stub("cd", args)
@@ -74,6 +98,26 @@ def run_line(line):
     return "error" if result.startswith(ERROR_PREFIX) else "ok"
 
 
+def run_script(path):
+    """Выполняет стартовый скрипт, показывая и ввод, и вывод."""
+    try:
+        with open(path, "r", encoding="utf-8-sig") as file:
+            lines = file.read().splitlines()
+    except OSError:
+        show("Ошибка: не удалось открыть стартовый скрипт: " + path)
+        return
+    for number, line in enumerate(lines, start=1):
+        line = line.strip()
+        if line == "" or line.startswith("#"):
+            continue
+        show(PROMPT + line)
+        status = run_line(line)
+        if status == "error":
+            show("Ошибка в строке " + str(number) + " стартового скрипта")
+        elif status == "exit":
+            break
+
+
 # ---------- Окно ----------
 def show(text):
     """Добавляет строку текста в область вывода."""
@@ -110,9 +154,16 @@ def build_window():
 
 
 def main():
-    """Точка входа: создаёт окно и запускает цикл обработки событий."""
+    """Точка входа: читает параметры и запускает стартовый скрипт."""
+    vfs_path, script_path, problems = parse_params(sys.argv[1:])
     build_window()
     show("Эмулятор запущен. VFS: " + VFS_NAME + ". Введите команду.")
+    show("[отладка] --vfs: " + str(vfs_path))
+    show("[отладка] --script: " + str(script_path))
+    for text in problems:
+        show(text)
+    if script_path is not None:
+        run_script(script_path)
     root.mainloop()
 
 
