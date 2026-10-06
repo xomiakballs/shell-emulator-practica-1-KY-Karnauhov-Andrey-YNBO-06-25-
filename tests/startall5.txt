@@ -1,0 +1,18 @@
+# Стартовый скрипт Этапа 5: chown
+
+# смена владельца файла и папки (абсолютный и относительный путь)
+chown ivan /home/user/docs/note.txt
+cd home
+chown petr user
+cd
+chown anna bin/hello.bin
+# сохраняем VFS: в afterchown.csv видно новых владельцев
+vfs-save tests/out/afterchown.csv
+ls home/user
+
+# ошибки
+chown
+chown ivan
+chown ivan home/nofolder
+chown ivan /
+chown a b c

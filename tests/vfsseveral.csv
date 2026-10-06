@@ -1,4 +1,4 @@
-type,path,encoding,content
-file,a.txt,text,Файл A
-file,b.txt,text,Файл B
-file,c.txt,text,Файл C
+type,path,encoding,content,owner
+file,a.txt,text,Файл A,root
+file,b.txt,text,Файл B,root
+file,c.txt,text,Файл C,root

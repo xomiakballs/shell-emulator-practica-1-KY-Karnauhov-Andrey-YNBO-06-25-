@@ -7,7 +7,7 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
 указано имя VFS (`vfs-9variant`). Введённая строка разбивается
 по пробелам на команду и аргументы.
 
-Статус: **Этап 4 — Основные команды** (`ls`, `cd`, `who`, `wc`, `tac`).
+Статус: **Этап 5 — Дополнительные команды** (финальный, добавлена `chown`).
 
 ## Функции и настройки
 
@@ -20,6 +20,10 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
 - `who` — имя пользователя реальной ОС.
 - `wc <файл>` — число строк, слов и символов в файле.
 - `tac <файл>` — строки файла в обратном порядке.
+- `chown <владелец> <путь>` — меняет владельца файла или папки в VFS
+  (только в памяти; чтобы записать на диск, вызвать `vfs-save`).
+  Ошибки: аргументов не два, путь не найден, попытка сменить владельца
+  корня.
 - Параметры командной строки:
     - `--vfs <путь>` — путь к CSV-файлу с VFS;
     - `--script <путь>` — путь к стартовому скрипту.
@@ -43,16 +47,17 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
 Первая строка CSV — заголовок:
 
 ```
-type,path,encoding,content
-dir,home,,
+type,path,encoding,content,owner
+dir,home,,,root
 file,home/user/note.txt,text,"строка 1
-строка 2"
-file,bin/hello.bin,base64,0J/RgNC4...
+строка 2",root
+file,bin/hello.bin,base64,0J/RgNC4...,root
 ```
 
 `type` — `dir` или `file`; `path` — полный путь без начального `/`
 (вложенность задаётся через `/`); `encoding` — `text` или `base64`
 (для двоичных данных); `content` — содержимое файла.
+`owner` — владелец (необязательное поле, по умолчанию `root`).
 
 ## Сборка и запуск
 
@@ -61,7 +66,7 @@ file,bin/hello.bin,base64,0J/RgNC4...
 
 ```
 run.bat
-python src/main.py --vfs tests/vfsdeep.csv --script tests/startall4.txt
+python src/main.py --vfs tests/vfsdeep.csv --script tests/startall5.txt
 ```
 
 `run.bat` передаёт параметры дальше, например
@@ -89,6 +94,7 @@ python src/main.py --vfs tests/vfsdeep.csv --script tests/startall4.txt
 | `tests/test12_vfs_bad.bat` | неверные строки в VFS (`vfsbad.csv`, ошибки) |
 | `tests/teststage3.bat` | все команды Этапа 3 + VFS + ошибки (`startall3.txt`) |
 | `tests/teststage4.bat` | `ls`, `cd`, `who`, `wc`, `tac` + ошибки (`startall4.txt`) |
+| `tests/teststage5.bat` | `chown`, сохранение в `tests/out/afterchown.csv` + ошибки (`startall5.txt`) |
 
 Файлы, которые создаёт `vfs-save` при тестах, попадают в `tests/out/`
 (папка в `.gitignore`).
@@ -109,4 +115,14 @@ vfs-9variant$ tac note.txt
 первая строка
 vfs-9variant$ cd nofolder
 Ошибка: cd: нет такой папки: nofolder
+vfs-9variant$ chown ivan /home/user/docs/note.txt
+chown: владелец /home/user/docs/note.txt теперь ivan
+vfs-9variant$ vfs-save tests/out/afterchown.csv
+vfs-save: сохранено в tests/out/afterchown.csv
+vfs-9variant$ chown ivan /
+Ошибка: chown: нельзя менять владельца корня
 ```
+
+## Все команды эмулятора
+
+`ls`, `cd`, `who`, `wc`, `tac`, `chown`, `vfs-save`, `exit`.

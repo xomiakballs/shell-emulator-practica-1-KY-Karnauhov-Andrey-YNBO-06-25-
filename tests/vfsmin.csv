@@ -1,2 +1,2 @@
-type,path,encoding,content
-file,readme.txt,text,Привет! Это минимальная VFS.
+type,path,encoding,content,owner
+file,readme.txt,text,Привет! Это минимальная VFS.,root

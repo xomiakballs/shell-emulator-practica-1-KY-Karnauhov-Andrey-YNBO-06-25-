@@ -19,12 +19,15 @@ EXIT_SIGNAL = "exit"
 EXIT_DELAY_MS = 300
 ERROR_PREFIX = "Ошибка"
 
-CSV_HEADER = ["type", "path", "encoding", "content"]
-CSV_FIELDS = 4
+CSV_HEADER = ["type", "path", "encoding", "content", "owner"]
+FIELDS_WITHOUT_OWNER = 4
+FIELDS_WITH_OWNER = 5
+DEFAULT_OWNER = "root"
 ENTRY_KINDS = ("dir", "file")
 BASE64 = "base64"
 
 MAX_PATH_ARGS = 1
+CHOWN_ARGS = 2
 
 vfs_data = {}
 cur_path = ""
@@ -72,9 +75,13 @@ def parse_row(row, number):
     Возвращает пару (путь, запись) или строку с текстом ошибки.
     """
     where = " в строке " + str(number)
-    if len(row) != CSV_FIELDS:
+    if len(row) == FIELDS_WITH_OWNER:
+        kind, path, encoding, content, owner = row
+    elif len(row) == FIELDS_WITHOUT_OWNER:
+        kind, path, encoding, content = row
+        owner = DEFAULT_OWNER
+    else:
         return "Ошибка: неверный формат VFS" + where
-    kind, path, encoding, content = row
     if kind not in ENTRY_KINDS:
         return "Ошибка: неизвестный тип записи" + where
     path = path.strip("/")
@@ -82,7 +89,8 @@ def parse_row(row, number):
         return "Ошибка: пустой путь" + where
     if encoding == BASE64 and not is_base64(content):
         return "Ошибка: неверные данные base64" + where
-    entry = {"kind": kind, "encoding": encoding, "content": content}
+    entry = {"kind": kind, "encoding": encoding,
+             "content": content, "owner": owner}
     return path, entry
 
 
@@ -98,7 +106,8 @@ def load_vfs(file_path):
         show("Ошибка: файл VFS не является корректным CSV: " + file_path)
         return None
 
-    if not rows or rows[0] != CSV_HEADER:
+    if not rows or rows[0][:FIELDS_WITHOUT_OWNER] != \
+            CSV_HEADER[:FIELDS_WITHOUT_OWNER]:
         show("Ошибка: неверный заголовок VFS в файле " + file_path)
         return None
 
@@ -120,7 +129,7 @@ def save_vfs(file_path):
             writer.writerow(CSV_HEADER)
             for path, entry in vfs_data.items():
                 writer.writerow([entry["kind"], path, entry["encoding"],
-                                 entry["content"]])
+                                 entry["content"], entry["owner"]])
     except OSError:
         return False
     return True
@@ -239,6 +248,20 @@ def cmd_tac(args):
     return "\n".join(reversed(text.split("\n")))
 
 
+def cmd_chown(args):
+    """Меняет владельца файла или папки (только в памяти)."""
+    if len(args) != CHOWN_ARGS:
+        return "Ошибка: chown: нужно chown <владелец> <путь>"
+    new_owner = args[0]
+    target = resolve_path(args[1])
+    if target == "":
+        return "Ошибка: chown: нельзя менять владельца корня"
+    if target not in vfs_data:
+        return "Ошибка: chown: нет такого файла или папки: " + args[1]
+    vfs_data[target]["owner"] = new_owner
+    return "chown: владелец " + shown_path(target) + " теперь " + new_owner
+
+
 def cmd_vfs_save(args):
     """Сохраняет VFS на диск в исходном формате CSV."""
     if len(args) != MAX_PATH_ARGS:
@@ -261,6 +284,7 @@ COMMANDS = {
     "who": cmd_who,
     "wc": cmd_wc,
     "tac": cmd_tac,
+    "chown": cmd_chown,
     "vfs-save": cmd_vfs_save,
     "exit": cmd_exit,
 }

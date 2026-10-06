@@ -1,5 +1,5 @@
-type,path,encoding,content
-file,good.txt,text,Нормальная запись
+type,path,encoding,content,owner
+file,good.txt,text,Нормальная запись,root
 file,broken.txt
-link,strange,text,неизвестный тип
-file,bad.bin,base64,это-не-base64!!!
+link,strange,text,неизвестный тип,root
+file,bad.bin,base64,это-не-base64!!!,root

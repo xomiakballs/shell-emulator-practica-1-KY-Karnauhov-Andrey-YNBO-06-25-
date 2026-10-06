@@ -1,10 +1,10 @@
-type,path,encoding,content
-dir,home,,
-dir,home/user,,
-dir,home/user/docs,,
+type,path,encoding,content,owner
+dir,home,,,root
+dir,home/user,,,root
+dir,home/user/docs,,,root
 file,home/user/docs/note.txt,text,"первая строка
 вторая строка
-третья строка"
-dir,home/user/empty,,
-dir,bin,,
-file,bin/hello.bin,base64,0J/RgNC40LLQtdGCINC40LcgYmFzZTY0CtCy0YLQvtGA0LDRjyDRgdGC0YDQvtC60LA=
+третья строка",root
+dir,home/user/empty,,,root
+dir,bin,,,root
+file,bin/hello.bin,base64,0J/RgNC40LLQtdGCINC40LcgYmFzZTY0CtCy0YLQvtGA0LDRjyDRgdGC0YDQvtC60LA=,root
