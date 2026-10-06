@@ -1,0 +1,5 @@
+type,path,encoding,content
+file,good.txt,text,Нормальная запись
+file,broken.txt
+link,strange,text,неизвестный тип
+file,bad.bin,base64,это-не-base64!!!

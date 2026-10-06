@@ -1,0 +1,13 @@
+# Стартовый скрипт Этапа 3: все команды и работа с VFS
+
+# заглушки ls и cd
+ls
+cd /home/user
+# сохранение VFS на диск в исходном формате
+vfs-save tests/out/saved3.csv
+
+# ошибки
+vfs-save
+vfs-save tests/net_takoy_papki/saved.csv
+ls a b
+foobar

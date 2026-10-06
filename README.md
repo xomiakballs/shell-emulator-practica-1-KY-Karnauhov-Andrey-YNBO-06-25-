@@ -7,7 +7,7 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
 указано имя VFS (`vfs-9variant`). Введённая строка разбивается
 по пробелам на команду и аргументы.
 
-Статус: **Этап 2 — Конфигурация**. Команды `ls` и `cd` пока заглушки.
+Статус: **Этап 3 — VFS**. VFS загружается из CSV в память; `ls` и `cd` пока заглушки.
 
 ## Функции и настройки
 
@@ -26,6 +26,29 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
   На экране видны и ввод (`vfs-9variant$ команда`), и вывод, как при
   ручном диалоге. При ошибке выводится номер строки скрипта; `exit`
   в скрипте завершает его выполнение.
+- VFS хранится только в памяти; файл на диске не изменяется.
+- Формат CSV описан ниже, в разделе «Формат VFS».
+- Ошибки загрузки VFS: файл не найден, неверный заголовок, неверное число
+  полей в строке, неизвестный тип записи, неверные данные base64.
+  Ошибочные строки пропускаются с сообщением, остальные загружаются.
+- `vfs-save <путь>` — сохраняет текущее состояние VFS в CSV в исходном
+  формате.
+
+### Формат VFS
+
+Первая строка CSV — заголовок:
+
+```
+type,path,encoding,content
+dir,home,,
+file,home/user/note.txt,text,"строка 1
+строка 2"
+file,bin/hello.bin,base64,0J/RgNC4...
+```
+
+`type` — `dir` или `file`; `path` — полный путь без начального `/`
+(вложенность задаётся через `/`); `encoding` — `text` или `base64`
+(для двоичных данных); `content` — содержимое файла.
 
 ## Сборка и запуск
 
@@ -34,7 +57,7 @@ GUI-эмулятор командной строки UNIX-подобной ОС 
 
 ```
 run.bat
-python src/main.py --vfs myvfs.csv --script tests/start.txt
+python src/main.py --vfs tests/vfsdeep.csv --script tests/startall3.txt
 ```
 
 `run.bat` передаёт параметры дальше, например
@@ -55,16 +78,30 @@ python src/main.py --vfs myvfs.csv --script tests/start.txt
 | `tests/test5_script_exit.bat` | `exit` внутри скрипта |
 | `tests/test6_missing_script.bat` | несуществующий скрипт (ошибка) |
 | `tests/test7_bad_params.bat` | неизвестный параметр и параметр без значения (ошибки) |
+| `tests/test8_vfs_min.bat` | минимальная VFS (`vfsmin.csv`, один файл) |
+| `tests/test9_vfs_several.bat` | несколько файлов (`vfsseveral.csv`) |
+| `tests/test10_vfs_deep.bat` | 3 уровня папок и base64-файл (`vfsdeep.csv`) |
+| `tests/test11_vfs_missing.bat` | файл VFS не найден (ошибка) |
+| `tests/test12_vfs_bad.bat` | неверные строки в VFS (`vfsbad.csv`, ошибки) |
+| `tests/teststage3.bat` | все команды Этапа 3 + VFS + ошибки (`startall3.txt`) |
+
+Файлы, которые создаёт `vfs-save` при тестах, попадают в `tests/out/`
+(папка в `.gitignore`).
 
 ## Примеры использования
 
 ```
-> python src/main.py --vfs myvfs.csv --script tests/start.txt
-[отладка] --vfs: myvfs.csv
-[отладка] --script: tests/start.txt
-vfs-9variant$ ls /home
-ls: вызвана с аргументами: ['/home']
-vfs-9variant$ foobar 1 2
-Ошибка: неизвестная команда foobar
-Ошибка в строке 9 стартового скрипта
+> python src/main.py --vfs tests/vfsdeep.csv --script tests/startall3.txt
+VFS загружена, записей: 7
+vfs-9variant$ vfs-save tests/out/saved3.csv
+vfs-save: сохранено в tests/out/saved3.csv
+vfs-9variant$ vfs-save
+Ошибка: vfs-save: укажите один путь
+Ошибка в строке 10 стартового скрипта
+
+> python src/main.py --vfs tests/vfsbad.csv
+Ошибка: неверный формат VFS в строке 3
+Ошибка: неизвестный тип записи в строке 4
+Ошибка: неверные данные base64 в строке 5
+VFS загружена, записей: 1
 ```

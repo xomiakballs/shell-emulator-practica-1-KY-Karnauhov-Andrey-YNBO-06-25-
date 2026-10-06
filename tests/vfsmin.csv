@@ -1,0 +1,2 @@
+type,path,encoding,content
+file,readme.txt,text,Привет! Это минимальная VFS.

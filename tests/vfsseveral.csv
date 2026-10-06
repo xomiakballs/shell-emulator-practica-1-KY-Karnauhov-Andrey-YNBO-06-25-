@@ -1,0 +1,4 @@
+type,path,encoding,content
+file,a.txt,text,Файл A
+file,b.txt,text,Файл B
+file,c.txt,text,Файл C

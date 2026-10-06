@@ -1,10 +1,13 @@
 """Эмулятор языка оболочки ОС (Вариант №9) с графическим интерфейсом.
 
 Окно на Tkinter имитирует командную строку UNIX-подобной ОС.
-Этап 2: параметры командной строки (--vfs, --script) и стартовый
-скрипт. Команды ls и cd пока являются заглушками.
+Виртуальная файловая система (VFS) загружается из CSV-файла,
+и все операции с ней выполняются только в памяти.
 """
 
+import base64
+import binascii
+import csv
 import sys
 import tkinter as tk
 from tkinter import scrolledtext
@@ -15,8 +18,14 @@ EXIT_SIGNAL = "exit"
 EXIT_DELAY_MS = 300
 ERROR_PREFIX = "Ошибка"
 
+CSV_HEADER = ["type", "path", "encoding", "content"]
+CSV_FIELDS = 4
+ENTRY_KINDS = ("dir", "file")
+BASE64 = "base64"
+
 MAX_PATH_ARGS = 1
 
+vfs_data = {}
 output_box = None
 input_box = None
 root = None
@@ -45,6 +54,76 @@ def parse_params(params):
     return found["--vfs"], found["--script"], problems
 
 
+# ---------- Загрузка и сохранение VFS ----------
+def is_base64(text):
+    """Проверяет, что строка является корректными данными base64."""
+    try:
+        base64.b64decode(text, validate=True)
+    except (binascii.Error, ValueError):
+        return False
+    return True
+
+
+def parse_row(row, number):
+    """Разбирает одну строку CSV.
+
+    Возвращает пару (путь, запись) или строку с текстом ошибки.
+    """
+    where = " в строке " + str(number)
+    if len(row) != CSV_FIELDS:
+        return "Ошибка: неверный формат VFS" + where
+    kind, path, encoding, content = row
+    if kind not in ENTRY_KINDS:
+        return "Ошибка: неизвестный тип записи" + where
+    path = path.strip("/")
+    if path == "":
+        return "Ошибка: пустой путь" + where
+    if encoding == BASE64 and not is_base64(content):
+        return "Ошибка: неверные данные base64" + where
+    entry = {"kind": kind, "encoding": encoding, "content": content}
+    return path, entry
+
+
+def load_vfs(file_path):
+    """Загружает VFS из CSV-файла в словарь. При ошибке возвращает None."""
+    try:
+        with open(file_path, "r", encoding="utf-8-sig", newline="") as file:
+            rows = list(csv.reader(file))
+    except OSError:
+        show("Ошибка: не удалось открыть VFS: " + file_path)
+        return None
+    except csv.Error:
+        show("Ошибка: файл VFS не является корректным CSV: " + file_path)
+        return None
+
+    if not rows or rows[0] != CSV_HEADER:
+        show("Ошибка: неверный заголовок VFS в файле " + file_path)
+        return None
+
+    data = {}
+    for number, row in enumerate(rows[1:], start=2):
+        result = parse_row(row, number)
+        if isinstance(result, str):
+            show(result)
+        else:
+            data[result[0]] = result[1]
+    return data
+
+
+def save_vfs(file_path):
+    """Сохраняет текущее состояние VFS в CSV. Возвращает True при успехе."""
+    try:
+        with open(file_path, "w", encoding="utf-8", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(CSV_HEADER)
+            for path, entry in vfs_data.items():
+                writer.writerow([entry["kind"], path, entry["encoding"],
+                                 entry["content"]])
+    except OSError:
+        return False
+    return True
+
+
 # ---------- Команды ----------
 def cmd_stub(name, args):
     """Заглушка: выводит имя команды и её аргументы."""
@@ -65,6 +144,15 @@ def cmd_cd(args):
     return cmd_stub("cd", args)
 
 
+def cmd_vfs_save(args):
+    """Сохраняет VFS на диск в исходном формате CSV."""
+    if len(args) != MAX_PATH_ARGS:
+        return "Ошибка: vfs-save: укажите один путь"
+    if save_vfs(args[0]):
+        return "vfs-save: сохранено в " + args[0]
+    return "Ошибка: vfs-save: не удалось сохранить VFS в " + args[0]
+
+
 def cmd_exit(args):
     """Завершает работу эмулятора."""
     if args:
@@ -75,6 +163,7 @@ def cmd_exit(args):
 COMMANDS = {
     "ls": cmd_ls,
     "cd": cmd_cd,
+    "vfs-save": cmd_vfs_save,
     "exit": cmd_exit,
 }
 
@@ -154,7 +243,8 @@ def build_window():
 
 
 def main():
-    """Точка входа: читает параметры и запускает стартовый скрипт."""
+    """Точка входа: читает параметры, загружает VFS, запускает скрипт."""
+    global vfs_data
     vfs_path, script_path, problems = parse_params(sys.argv[1:])
     build_window()
     show("Эмулятор запущен. VFS: " + VFS_NAME + ". Введите команду.")
@@ -162,6 +252,11 @@ def main():
     show("[отладка] --script: " + str(script_path))
     for text in problems:
         show(text)
+    if vfs_path is not None:
+        loaded = load_vfs(vfs_path)
+        if loaded is not None:
+            vfs_data = loaded
+            show("VFS загружена, записей: " + str(len(vfs_data)))
     if script_path is not None:
         run_script(script_path)
     root.mainloop()

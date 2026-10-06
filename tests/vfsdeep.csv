@@ -1,0 +1,10 @@
+type,path,encoding,content
+dir,home,,
+dir,home/user,,
+dir,home/user/docs,,
+file,home/user/docs/note.txt,text,"первая строка
+вторая строка
+третья строка"
+dir,home/user/empty,,
+dir,bin,,
+file,bin/hello.bin,base64,0J/RgNC40LLQtdGCINC40LcgYmFzZTY0CtCy0YLQvtGA0LDRjyDRgdGC0YDQvtC60LA=
