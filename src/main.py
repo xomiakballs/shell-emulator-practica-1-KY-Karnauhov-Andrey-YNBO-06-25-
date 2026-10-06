@@ -36,7 +36,6 @@ input_box = None
 root = None
 
 
-# ---------- Параметры командной строки ----------
 def parse_params(params):
     """Разбирает параметры --vfs и --script.
 
@@ -59,7 +58,6 @@ def parse_params(params):
     return found["--vfs"], found["--script"], problems
 
 
-# ---------- Загрузка и сохранение VFS ----------
 def is_base64(text):
     """Проверяет, что строка является корректными данными base64."""
     try:
@@ -135,7 +133,6 @@ def save_vfs(file_path):
     return True
 
 
-# ---------- Пути внутри VFS ----------
 def resolve_path(name):
     """Превращает путь пользователя в полный путь внутри VFS.
 
@@ -182,7 +179,6 @@ def shown_path(path):
     return "/" + path
 
 
-# ---------- Команды ----------
 def cmd_ls(args):
     """Выводит имена элементов текущей или указанной папки."""
     if len(args) > MAX_PATH_ARGS:
@@ -290,7 +286,6 @@ COMMANDS = {
 }
 
 
-# ---------- Выполнение команд ----------
 def run_line(line):
     """Выполняет одну строку ввода. Возвращает "ok", "error" или "exit"."""
     parts = line.split()
@@ -329,7 +324,6 @@ def run_script(path):
             break
 
 
-# ---------- Окно ----------
 def show(text):
     """Добавляет строку текста в область вывода."""
     output_box.config(state="normal")
